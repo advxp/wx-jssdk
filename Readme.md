@@ -11,7 +11,8 @@
 ```javascript
   var WxJsSDKUtil = require('wx-jssdk');
   var obj = new WxJsSDKUtil(appid, appsecret);
-  obj.getJsConfig(function (err, ret) {
+  // 获取某个url下的wx.config参数
+  obj.getJsConfig(url, function (err, ret) {
     if (err) {
       console.error(err);
     }

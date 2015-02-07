@@ -1,6 +1,6 @@
 {
   "name": "wx-jssdk",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "",
   "main": "src/index.js",
   "scripts": {
@@ -9,6 +9,13 @@
   "dependencies": {
     "define-js-class": "*",
     "async": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/advxp/wx-jssdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/advxp/wx-jssdk/issues"
   },
   "author": "advjiang",
   "license": "ISC"

@@ -42,8 +42,8 @@ var WxJsSDK = xExtend(function () {}, {
 
 	getAccessToken: function (cb) {
 		if (!WxJsSDK.wxAccessToken) {
-			var appid = this.wxAppId;
-			var secret = this.wxAppSecret;
+			var appid = this.appId;
+			var secret = this.appSecret;
 			var options = {
 		    	hostname: 'api.weixin.qq.com',
 		    	port: 443,
