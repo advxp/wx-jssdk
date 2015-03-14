@@ -60,7 +60,7 @@ var WxJsSDK = xExtend(function () {}, {
 		            console.log('get wx toke ok[' + token + ']');
 		            var tk = JSON.parse(token);
 		            cb (null, WxJsSDK.wxAccessToken = tk.access_token);
-		            WxJsSDK.updateCache();
+		            WxJsSDK.updateTokenCache();
 		    	});
 		    });
 		    req.end();
@@ -92,7 +92,7 @@ var WxJsSDK = xExtend(function () {}, {
 		            console.log('get wx js api ticket ok[' + token + ']');
 		            var tk = JSON.parse(token);
 		            cb (null, WxJsSDK.wxJsApiTicket = tk.ticket);
-		            WxJsSDK.updateCache();
+		            WxJsSDK.updateTicketCache();
 		    	});
 		    });
 		    req.end();
@@ -149,12 +149,18 @@ var WxJsSDK = xExtend(function () {}, {
 	},
 
 	'static': {
-		updateCache: function () {
+		updateTicketCache: function () {
 			setTimeout(function () {
-            	WxJsSDK.wxJsApiTicket = '';
             	WxJsSDK.wxAccessToken = '';
             }, 1000 * 60 * 110);
 		},
+
+		updateTokenCache: function () {
+			setTimeout(function () {
+            	WxJsSDK.wxJsApiTicket = '';
+            }, 1000 * 60 * 110);
+		},
+
 		'wxAccessToken': '',
 		'wxJsApiTicket': ''
 	}
