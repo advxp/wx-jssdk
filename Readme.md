@@ -10,7 +10,10 @@
 
 ```javascript
   var WxJsSDKUtil = require('wx-jssdk');
+
+  // 用你的appid和appsecret实例化类
   var obj = new WxJsSDKUtil(appid, appsecret);
+  
   // 获取某个url下的wx.config参数
   obj.getJsConfig(url, function (err, ret) {
     if (err) {

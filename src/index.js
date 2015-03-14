@@ -2,6 +2,7 @@ var xExtend = require('define-js-class');
 var crypto = require('crypto');
 var https = require('https');
 var async = require('async');
+
 var WxJsSDK = xExtend(function () {}, {
 	_constructor: function (appId, appSecret) {
 		this.appId = appId;
@@ -26,7 +27,6 @@ var WxJsSDK = xExtend(function () {}, {
 				ar.push(i);
 			}
 		}
-		console.log(data);
 		ar.sort();
 		var ret = [];
 		for (var i = 0; i < ar.length; i++) {
@@ -60,9 +60,7 @@ var WxJsSDK = xExtend(function () {}, {
 		            console.log('get wx toke ok[' + token + ']');
 		            var tk = JSON.parse(token);
 		            cb (null, WxJsSDK.wxAccessToken = tk.access_token);
-		            setTimeout(function () {
-		            	WxJsSDK.wxAccessToken = '';
-		            }, 1000 * 60 * 110);
+		            WxJsSDK.updateCache();
 		    	});
 		    });
 		    req.end();
@@ -94,9 +92,7 @@ var WxJsSDK = xExtend(function () {}, {
 		            console.log('get wx js api ticket ok[' + token + ']');
 		            var tk = JSON.parse(token);
 		            cb (null, WxJsSDK.wxJsApiTicket = tk.ticket);
-		            setTimeout(function () {
-		            	WxJsSDK.wxJsApiTicket = '';
-		            }, 1000 * 60 * 110);
+		            WxJsSDK.updateCache();
 		    	});
 		    });
 		    req.end();
@@ -153,7 +149,12 @@ var WxJsSDK = xExtend(function () {}, {
 	},
 
 	'static': {
-		getInstance: function () {},
+		updateCache: function () {
+			setTimeout(function () {
+            	WxJsSDK.wxJsApiTicket = '';
+            	WxJsSDK.wxAccessToken = '';
+            }, 1000 * 60 * 110);
+		},
 		'wxAccessToken': '',
 		'wxJsApiTicket': ''
 	}
