@@ -1,7 +1,7 @@
 var xExtend = require('define-js-class');
 var crypto = require('crypto');
-var https = require('https');
 var async = require('async');
+var request = require('request');
 
 var WxJsSDK = xExtend(function () {}, {
 	_constructor: function (appId, appSecret) {
@@ -40,69 +40,51 @@ var WxJsSDK = xExtend(function () {}, {
 		return str;
 	},
 
+	/**
+	 * 应用层应该自行对获取到token进行缓存防止到达微信的日访问上限而被封锁
+	 * 可以使用memcached、redis、mongodb等你熟悉的任何存储工具进行缓存
+	 * 微信默认的实效是2个小时，你需要注意缓存的淘汰时间
+	 */
 	getAccessToken: function (cb) {
-		if (!WxJsSDK.wxAccessToken) {
-			var appid = this.appId;
-			var secret = this.appSecret;
-			var options = {
-		    	hostname: 'api.weixin.qq.com',
-		    	port: 443,
-		    	path: '/cgi-bin/token?grant_type=client_credential&appid=' + appid + '&secret=' + secret,
-		    	method: 'GET'
-		    };
-		    var req = https.request(options, function(res) {
-		        var bdy = [];
-		    	res.on('data', function(d) {
-		            bdy.push(d);
-		    	});
-		    	res.on('end', function () {
-		            var token = bdy.join('');
-		            console.log('get wx toke ok[' + token + ']');
-		            var tk = JSON.parse(token);
-		            cb (null, WxJsSDK.wxAccessToken = tk.access_token);
-		            WxJsSDK.updateTokenCache();
-		    	});
-		    });
-		    req.end();
-		    req.on('error', function(e) {
-		    	console.error(e);
-		    });
-		}
-		else {
-			cb(null, WxJsSDK.wxAccessToken);
-		}
+		var appid = this.appId;
+		var secret = this.appSecret;
+		var options = {
+	    	url: 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=' + appid + '&secret=' + secret,
+	    	method: 'GET'
+	    };
+	    var req = request(options, function(error, response, bdy) {
+	        if (error) {
+				cb (error);
+			}
+			else {
+	            console.log('get wx toke ok[' + bdy + ']');
+	            var tk = JSON.parse(bdy);
+	            cb (null, tk.access_token, tk.expires_in);
+	        }
+	    });
 	},
 
+	/**
+	 * 应用层应该自行对获取到token进行缓存防止到达微信的日访问上限而被封锁
+	 * 可以使用memcached、redis、mongodb等你熟悉的任何存储工具进行缓存
+	 * 微信默认的实效是2个小时，你需要注意缓存的淘汰时间
+	 */
 	getJsApiTicket: function (token, cb) {
-		if (!WxJsSDK.wxJsApiTicket) {
-			var options = {
-		    	hostname: 'api.weixin.qq.com',
-		    	port: 443,
-		    	path: '/cgi-bin/ticket/getticket?access_token=' + token + '&type=jsapi',
-		    	method: 'GET'
-		    };
+		var options = {
+	    	url: 'https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=' + token + '&type=jsapi',
+	    	method: 'GET'
+	    };
 
-		    var req = https.request(options, function(res) {
-		        var bdy = [];
-		    	res.on('data', function(d) {
-		            bdy.push(d);
-		    	});
-		    	res.on('end', function () {
-		            var token = bdy.join('');
-		            console.log('get wx js api ticket ok[' + token + ']');
-		            var tk = JSON.parse(token);
-		            cb (null, WxJsSDK.wxJsApiTicket = tk.ticket);
-		            WxJsSDK.updateTicketCache();
-		    	});
-		    });
-		    req.end();
-		    req.on('error', function(e) {
-		    	console.error(e);
-		    });
-		}
-		else {
-			cb(null, WxJsSDK.wxJsApiTicket);
-		}
+	    var req = request(options, function(error, response, bdy) {
+	    	if (error) {
+				callback (error);
+			}
+			else {
+	            console.log('get wx js api ticket ok[' + bdy + ']');
+	            var tk = JSON.parse(bdy);
+	            cb (null, tk.ticket, tk.expires_in);
+	        }
+	    });
 	},
 
 	getJsApiConfig: function (url, cb) {
@@ -146,6 +128,91 @@ var WxJsSDK = xExtend(function () {}, {
 				cb (null, rst)
 			}
 		});
+	},
+
+	refreshAccessToken: function (refresh_token, callback) {
+		var opt = {
+	    	method: 'GET',
+			url: 'https://api.weixin.qq.com/sns/oauth2/refresh_token?appid=' + this.appId+ ' &grant_type=refresh_token&refresh_token=' + refresh_token
+		};
+		
+		request(options, function(error, response, bdy) {
+			if (error) {
+				callback (error);
+			}
+			else{
+				var ret = JSON.parse(bdy);
+				if (ret.errcode) {
+					callback (ret);
+				}
+				else {
+					callback (null, ret);
+				}
+			}
+	    });
+	},
+
+	/*
+	 * 通过微信跳转回来的code换取用户信息
+	 * 在换取用户信息前先换取access_token
+	 */
+	getUserInfoByCode: function (code, callback) {
+		var t = this;
+		if (code) {
+			var options = {
+		    	method: 'GET',
+				url: 'https://api.weixin.qq.com/sns/oauth2/access_token?appid=' + this.appId + '&secret=' + this.appSecret + '&code=' + code + '&grant_type=authorization_code'
+			};
+			request(options, function(error, response, bdy) {
+                console.log(bdy);
+				if (error) {
+					callback (error);
+				}
+				else{
+					var ret = JSON.parse(bdy);
+					if (ret.errcode) {
+						callback (ret);
+					}
+					else {
+						var openid = ret.openid;
+						// 需要获取用户基本信息，头像 昵称等
+						if (ret.scope.indexOf('snsapi_userinfo') > -1) {
+							t._fetchUserInfo(ret.access_token, openid, callback);
+						}
+						else {
+							callback (null, ret);
+						}
+					}
+				}
+		    });
+		}
+		else {
+			callback ({msg: '参数错误，需要code换取access_token', code: -10000});
+		}
+	},
+
+	/**
+	 * 调用微信的api获取用户信息
+	 */
+	_fetchUserInfo: function (access_token, openid, callback) {
+		var options = {
+		    method: 'GET',
+			url: 'https://api.weixin.qq.com/sns/userinfo?access_token=' + access_token + '&openid=' + openid + '&lang=zh_CN'
+		};
+		request(options, function(error, response, bdy) {
+			if (error) {
+				callback (error);
+			}
+			else{
+				var ret = JSON.parse(bdy);
+				if (ret.errcode) {
+					callback (ret);
+				}
+				else {
+					callback (null, ret);
+				}
+			}
+	    });
 	},
 
 	'static': {
