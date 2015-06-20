@@ -3,6 +3,8 @@ var crypto = require('crypto');
 var async = require('async');
 var request = require('request');
 
+var ticketExpiredTime, accessTokenExpiredTime, disTime = 5 * 60 * 1000;
+var cachedTicket, cachedAccessToken;
 var WxJsSDK = xExtend(function () {}, {
 	_constructor: function (appId, appSecret) {
 		this.appId = appId;
@@ -48,20 +50,26 @@ var WxJsSDK = xExtend(function () {}, {
 	getAccessToken: function (cb) {
 		var appid = this.appId;
 		var secret = this.appSecret;
-		var options = {
-	    	url: 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=' + appid + '&secret=' + secret,
-	    	method: 'GET'
-	    };
-	    var req = request(options, function(error, response, bdy) {
-	        if (error) {
-				cb (error);
-			}
-			else {
-	            console.log('get wx toke ok[' + bdy + ']');
-	            var tk = JSON.parse(bdy);
-	            cb (null, tk.access_token, tk.expires_in);
-	        }
-	    });
+        if (Date.now() < accessTokenExpiredTime && cachedAccessToken) {
+            cb (null, cachedTicket);
+        }
+        else {
+            var options = {
+                url: 'https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=' + appid + '&secret=' + secret,
+                method: 'GET'
+            };
+            var req = request(options, function(error, response, bdy) {
+                if (error) {
+                    cb (error);
+                }
+                else {
+                    console.log('get wx toke ok[' + bdy + ']');
+                    var tk = JSON.parse(bdy);
+                    accessTokenExpiredTime = Date.now() + 1000 * tk.expires_in - disTime;
+                    cb (null, cachedAccessToken = tk.access_token, tk.expires_in);
+                }
+            });
+        }
 	},
 
 	/**
@@ -75,16 +83,22 @@ var WxJsSDK = xExtend(function () {}, {
 	    	method: 'GET'
 	    };
 
-	    var req = request(options, function(error, response, bdy) {
-	    	if (error) {
-				callback (error);
-			}
-			else {
-	            console.log('get wx js api ticket ok[' + bdy + ']');
-	            var tk = JSON.parse(bdy);
-	            cb (null, tk.ticket, tk.expires_in);
-	        }
-	    });
+        if (Date.now() < ticketExpiredTime && cachedTicket) {
+            cb (null, cachedTicket)
+        }
+        else {
+            var req = request(options, function(error, response, bdy) {
+                if (error) {
+                    callback (error);
+                }
+                else {
+                    console.log('get wx js api ticket ok[' + bdy + ']');
+                    var tk = JSON.parse(bdy);
+                    ticketExpiredTime = Date.now() + 1000 * tk.expires_in - disTime;
+                    cb (null, cachedTicket = tk.ticket, tk.expires_in);
+                }
+            });
+        }
 	},
 
 	getJsApiConfig: function (url, cb) {
@@ -216,18 +230,6 @@ var WxJsSDK = xExtend(function () {}, {
 	},
 
 	'static': {
-		updateTicketCache: function () {
-			setTimeout(function () {
-            	WxJsSDK.wxAccessToken = '';
-            }, 1000 * 60 * 110);
-		},
-
-		updateTokenCache: function () {
-			setTimeout(function () {
-            	WxJsSDK.wxJsApiTicket = '';
-            }, 1000 * 60 * 110);
-		},
-
 		'wxAccessToken': '',
 		'wxJsApiTicket': ''
 	}
