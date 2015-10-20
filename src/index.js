@@ -38,7 +38,7 @@ var WxJsSDK = xExtend(function () {}, {
 			ret.push(ar[i] + '=' + data[ar[i]]);
 		}
 		var str = ret.join('&');
-		console.log(str);
+		// console.log(str);
 	    var md5sum = crypto.createHash('sha1');
 	    md5sum.update(str);
 	    str = md5sum.digest('hex');
@@ -67,7 +67,7 @@ var WxJsSDK = xExtend(function () {}, {
                     cb (error);
                 }
                 else {
-                    console.log('get wx toke ok[' + bdy + ']');
+                    // console.log('get wx toke ok[' + bdy + ']');
                     var tk = JSON.parse(bdy);
                     t.accessTokenExpiredTime = Date.now() + 1000 * tk.expires_in - t.disTime;
                     cb (null, t.cachedAccessToken = tk.access_token, tk.expires_in);
@@ -97,7 +97,7 @@ var WxJsSDK = xExtend(function () {}, {
                     callback (error);
                 }
                 else {
-                    console.log('get wx js api ticket ok[' + bdy + ']');
+                    // console.log('get wx js api ticket ok[' + bdy + ']');
                     var tk = JSON.parse(bdy);
                     t.ticketExpiredTime = Date.now() + 1000 * tk.expires_in - t.disTime;
                     cb (null, t.cachedTicket = tk.ticket, tk.expires_in);
@@ -183,7 +183,7 @@ var WxJsSDK = xExtend(function () {}, {
 				url: 'https://api.weixin.qq.com/sns/oauth2/access_token?appid=' + this.appId + '&secret=' + this.appSecret + '&code=' + code + '&grant_type=authorization_code'
 			};
 			request(options, function(error, response, bdy) {
-                console.log(bdy);
+                // console.log(bdy);
 				if (error) {
 					callback (error);
 				}
