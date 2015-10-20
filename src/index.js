@@ -3,9 +3,12 @@ var crypto = require('crypto');
 var async = require('async');
 var request = require('request');
 
-var ticketExpiredTime, accessTokenExpiredTime, disTime = 5 * 60 * 1000;
-var cachedTicket, cachedAccessToken;
 var WxJsSDK = xExtend(function () {}, {
+    ticketExpiredTime: null,
+    accessTokenExpiredTime: null,
+    disTime: 5 * 60 * 1000,
+    cachedTicket: '',
+    cachedAccessToken: '',
 	_constructor: function (appId, appSecret) {
 		this.appId = appId;
 		this.appSecret = appSecret;
@@ -48,10 +51,11 @@ var WxJsSDK = xExtend(function () {}, {
 	 * 微信默认的实效是2个小时，你需要注意缓存的淘汰时间
 	 */
 	getAccessToken: function (cb) {
+        var t = this;
 		var appid = this.appId;
 		var secret = this.appSecret;
-        if (Date.now() < accessTokenExpiredTime && cachedAccessToken) {
-            cb (null, cachedTicket);
+        if (Date.now() < t.accessTokenExpiredTime && t.cachedAccessToken) {
+            cb (null, t.cachedTicket);
         }
         else {
             var options = {
@@ -65,8 +69,8 @@ var WxJsSDK = xExtend(function () {}, {
                 else {
                     console.log('get wx toke ok[' + bdy + ']');
                     var tk = JSON.parse(bdy);
-                    accessTokenExpiredTime = Date.now() + 1000 * tk.expires_in - disTime;
-                    cb (null, cachedAccessToken = tk.access_token, tk.expires_in);
+                    t.accessTokenExpiredTime = Date.now() + 1000 * tk.expires_in - t.disTime;
+                    cb (null, t.cachedAccessToken = tk.access_token, tk.expires_in);
                 }
             });
         }
@@ -78,13 +82,14 @@ var WxJsSDK = xExtend(function () {}, {
 	 * 微信默认的实效是2个小时，你需要注意缓存的淘汰时间
 	 */
 	getJsApiTicket: function (token, cb) {
+        var t = this;
 		var options = {
 	    	url: 'https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token=' + token + '&type=jsapi',
 	    	method: 'GET'
 	    };
 
-        if (Date.now() < ticketExpiredTime && cachedTicket) {
-            cb (null, cachedTicket)
+        if (Date.now() < t.ticketExpiredTime && t.cachedTicket) {
+            cb (null, t.cachedTicket)
         }
         else {
             var req = request(options, function(error, response, bdy) {
@@ -94,8 +99,8 @@ var WxJsSDK = xExtend(function () {}, {
                 else {
                     console.log('get wx js api ticket ok[' + bdy + ']');
                     var tk = JSON.parse(bdy);
-                    ticketExpiredTime = Date.now() + 1000 * tk.expires_in - disTime;
-                    cb (null, cachedTicket = tk.ticket, tk.expires_in);
+                    t.ticketExpiredTime = Date.now() + 1000 * tk.expires_in - t.disTime;
+                    cb (null, t.cachedTicket = tk.ticket, tk.expires_in);
                 }
             });
         }
@@ -149,7 +154,7 @@ var WxJsSDK = xExtend(function () {}, {
 	    	method: 'GET',
 			url: 'https://api.weixin.qq.com/sns/oauth2/refresh_token?appid=' + this.appId+ ' &grant_type=refresh_token&refresh_token=' + refresh_token
 		};
-		
+
 		request(options, function(error, response, bdy) {
 			if (error) {
 				callback (error);
@@ -166,7 +171,7 @@ var WxJsSDK = xExtend(function () {}, {
 	    });
 	},
 
-	/*
+	/**
 	 * 通过微信跳转回来的code换取用户信息
 	 * 在换取用户信息前先换取access_token
 	 */
@@ -229,9 +234,18 @@ var WxJsSDK = xExtend(function () {}, {
 	    });
 	},
 
-	'static': {
-		'wxAccessToken': '',
-		'wxJsApiTicket': ''
+    /**
+     * 根据media_id从微信呢mp平台下载素材
+     * t.downloadMedia(media_id, function (err, req) {
+     *      req.pipe(fs.createWriteStream(yourlocalpath))
+     * })
+     */
+    downloadMedia: function (media_id, callback) {
+		var t = this;
+		t.getAccessToken(function (err, token) {
+			var url = 'https://api.weixin.qq.com/cgi-bin/media/get?access_token=' + token + '&media_id=' + media_id;
+			callback(null, request(url));
+		})
 	}
 });
 
