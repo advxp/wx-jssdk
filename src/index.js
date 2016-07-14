@@ -55,7 +55,7 @@ var WxJsSDK = xExtend(function () {}, {
 		var appid = this.appId;
 		var secret = this.appSecret;
         if (Date.now() < t.accessTokenExpiredTime && t.cachedAccessToken) {
-            cb (null, t.cachedTicket);
+            cb (null, t.cachedAccessToken);
         }
         else {
             var options = {
